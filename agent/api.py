@@ -75,7 +75,8 @@ class JobStatusUpdateRequest(BaseModel):
 @app.get("/", response_class=HTMLResponse)
 @app.get("/dashboard", response_class=HTMLResponse)
 def get_dashboard(request: Request):
-    return templates.TemplateResponse("dashboard.html", {"request": request})
+    html_file = TEMPLATES_DIR / "dashboard.html"
+    return HTMLResponse(content=html_file.read_text(encoding="utf-8"))
 
 
 # ==============================================================================
