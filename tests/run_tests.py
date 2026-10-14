@@ -64,14 +64,39 @@ def run_all():
     print("      [OK] Email Ingest passed.")
 
     # 9. Excel Sync (6 sheets) & Reports
-    print("[9/9] Testing 6-Sheet Excel Sync & Reports...")
+    print("[9/14] Testing 6-Sheet Excel Sync & Reports...")
     with tempfile.TemporaryDirectory() as tmpdir:
         t.test_excel_sync(db, Path(tmpdir))
     t.test_reports(db)
-    print("      [OK] Excel Sync (Jobs, People, Companies, Outreach, Signals, Dashboard) & Reports passed.")
+    print("       [OK] Excel Sync (Jobs, People, Companies, Outreach, Signals, Dashboard) & Reports passed.")
+
+    # 10. Hunter.io Connector
+    print("[10/14] Testing Hunter.io Connector (Domain, Finder, Verifier)...")
+    t.test_hunter_connector()
+    print("        [OK] Hunter.io Connector passed.")
+
+    # 11. Career Site & ATS Connector
+    print("[11/14] Testing Career Site & ATS Connector...")
+    t.test_career_site_connector()
+    print("        [OK] Career Site & ATS Connector passed.")
+
+    # 12. Public Professional Search Connector
+    print("[12/14] Testing Public Search Connector...")
+    t.test_public_search_connector()
+    print("        [OK] Public Search Connector passed.")
+
+    # 13. AI Outreach Engine
+    print("[13/14] Testing AI Outreach Engine (Dual format, Anti-spam, Timezones)...")
+    t.test_ai_outreach_engine()
+    print("        [OK] AI Outreach Engine passed.")
+
+    # 14. Global Career Search Pipeline
+    print("[14/14] Testing Global Career Search Pipeline (End-to-End)...")
+    t.test_global_career_search(db)
+    print("        [OK] Global Career Search Pipeline passed.")
 
     print("\n" + "=" * 60)
-    print("ALL 9 TESTS PASSED SUCCESSFULLY! (100% Pass Rate)")
+    print("ALL 14 TESTS PASSED SUCCESSFULLY! (100% Pass Rate)")
     print("=" * 60)
 
 if __name__ == "__main__":

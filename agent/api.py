@@ -1,6 +1,7 @@
 """FastAPI application providing REST endpoints and serving the mobile-first recruitment dashboard."""
 
 import os
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -22,17 +23,20 @@ from agent.database import (
     get_db,
     init_db,
 )
+from agent.connectors.hunter_connector import HunterConnector
+from agent.services.ai_outreach_engine import AIOutreachEngine
 from agent.services.company_scout import CompanyScout
 from agent.services.email_ingest import EmailIngest
 from agent.services.excel_sync import ExcelSync
 from agent.services.full_scanner import FullScanner
+from agent.services.global_career_search import GlobalCareerSearch
 from agent.services.reporter import Reporter
 from agent.services.resume_parser import ResumeParser
 
 app = FastAPI(
-    title="Recruitment Intelligence Agent API",
-    description="Cost-free, personal AI-powered Job and Recruitment Intelligence Agent",
-    version="1.0.0",
+    title="Global Career Outreach Platform API",
+    description="AI-powered Global Career Outreach Platform for targeted company job & people intelligence, contact research, personalized outreach, and CRM tracking.",
+    version="2.0.0",
 )
 
 # CORS configuration for personal mobile/iOS access over LAN
@@ -50,6 +54,41 @@ templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 
 # Pydantic Request Models
+class GlobalSearchRequest(BaseModel):
+    company: str
+    role: Optional[str] = "Data Engineer"
+    skills: Optional[str] = "Azure, Databricks, PySpark, SQL"
+    country: Optional[str] = "India"
+    people_to_find: Optional[str] = "All relevant levels"
+    outreach_objective: Optional[str] = "Ask about a job opportunity"
+
+
+class HunterDomainSearchRequest(BaseModel):
+    company: str
+    domain: Optional[str] = None
+
+
+class HunterEmailFinderRequest(BaseModel):
+    first_name: str
+    last_name: str
+    company: str
+    domain: Optional[str] = None
+
+
+class AIDraftRequest(BaseModel):
+    recipient_name: str
+    company: str
+    job_title: str
+    person_type: str
+    country: Optional[str] = "India"
+    objective: Optional[str] = "Ask about a job opportunity"
+    skills: Optional[str] = "Azure, Databricks, PySpark, SQL"
+
+
+class OutreachSendRequest(BaseModel):
+    channel: Optional[str] = "LinkedIn Note"
+
+
 class CompanyConnectRequest(BaseModel):
     company: str
     reason: Optional[str] = "Campus hiring announced / Parallel off-campus inquiry"
@@ -99,6 +138,96 @@ def get_stats(db: Session = Depends(get_db)):
         "applied_count": applied_count,
         "interviews_count": interviews_count,
     }
+
+
+@app.post("/api/v1/search/global")
+def trigger_global_search(req: GlobalSearchRequest, db: Session = Depends(get_db)):
+    """
+    Execute AI-powered Global Career Search:
+    - Company careers & ATS openings
+    - Recruiters, hiring managers, and referrers
+    - Hunter.io email discovery & verification
+    - Personalized outreach drafts in Approval Queue
+    """
+    result = GlobalCareerSearch.execute_search(
+        db=db,
+        company=req.company,
+        role=req.role or "Data Engineer",
+        skills=req.skills or "Azure, Databricks, PySpark, SQL",
+        country=req.country or "India",
+        people_to_find=req.people_to_find or "All relevant levels",
+        outreach_objective=req.outreach_objective or "Ask about a job opportunity",
+    )
+    # Auto sync to Excel
+    ExcelSync.sync_database_to_excel(db)
+    return result
+
+
+@app.post("/api/v1/enrich/hunter/domain")
+def search_hunter_domain(req: HunterDomainSearchRequest):
+    """Query Hunter.io for email pattern and sample contacts for a corporate domain."""
+    return HunterConnector.domain_search(company=req.company, domain=req.domain)
+
+
+@app.post("/api/v1/enrich/hunter/find-email")
+def find_hunter_email(req: HunterEmailFinderRequest):
+    """Find and verify business email for a contact using Hunter.io."""
+    return HunterConnector.find_email(
+        first_name=req.first_name,
+        last_name=req.last_name,
+        company=req.company,
+        domain=req.domain,
+    )
+
+
+@app.post("/api/v1/ai/generate-draft")
+def generate_ai_draft(req: AIDraftRequest):
+    """Generate or re-generate tailored LinkedIn note and cold email using AI engine."""
+    return AIOutreachEngine.generate_drafts(
+        recipient_name=req.recipient_name,
+        company=req.company,
+        job_title=req.job_title,
+        person_type=req.person_type,
+        country=req.country or "India",
+        objective=req.objective or "Ask about a job opportunity",
+        skills=req.skills or "Azure, Databricks, PySpark, SQL",
+    )
+
+
+@app.get("/api/v1/outreach")
+def list_outreach_messages(status: Optional[str] = None, db: Session = Depends(get_db)):
+    """Fetch outreach records with optional status filter for CRM pipeline."""
+    query = db.query(Outreach).order_by(desc(Outreach.date))
+    if status:
+        query = query.filter(Outreach.status == status)
+    messages = query.all()
+    return [m.to_dict() for m in messages]
+
+
+@app.post("/api/v1/outreach/{outreach_id}/send")
+def mark_outreach_sent(outreach_id: int, req: OutreachSendRequest, db: Session = Depends(get_db)):
+    """Mark an approved outreach message as Sent in the CRM pipeline."""
+    outreach = db.query(Outreach).filter(Outreach.id == outreach_id).first()
+    if not outreach:
+        raise HTTPException(status_code=404, detail="Outreach record not found")
+
+    outreach.status = "Sent"
+    outreach.channel = req.channel or outreach.channel
+    outreach.response = "Sent — awaiting recipient reply"
+    outreach.notes = f"{outreach.notes}\nSent via {outreach.channel} on {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}."
+
+    # Update person record
+    if outreach.person_id:
+        person = db.query(Person).filter(Person.person_id == outreach.person_id).first()
+        if person:
+            person.contacted = True
+            person.contact_date = datetime.utcnow().strftime("%Y-%m-%d")
+            person.connection_status = "Pending"
+            person.last_interaction = f"Sent {outreach.message_type}"
+
+    db.commit()
+    ExcelSync.sync_database_to_excel(db)
+    return {"success": True, "outreach_id": outreach.outreach_id, "status": outreach.status}
 
 
 @app.post("/api/v1/scan")

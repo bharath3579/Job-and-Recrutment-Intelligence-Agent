@@ -149,6 +149,15 @@ class Person(Base):
     )  # Existing, Not Connected, Pending, Connected
     relevant_job_id = Column(String(50), nullable=True)
     relevance_reason = Column(Text, default="")
+    country = Column(String(100), default="India")
+    email = Column(String(150), nullable=True)
+    email_type = Column(String(50), default="Business")
+    email_source = Column(String(200), default="Public Web / Hunter.io")
+    verification_status = Column(String(50), default="Unverified")  # Verified, Deliverable, Pattern-Inferred, Social Only
+    confidence_score = Column(Float, default=0.0)  # 0 to 100
+    skills_matched = Column(String(300), default="")
+    relevance_score = Column(Float, default=85.0)  # 0 to 100
+    score_breakdown = Column(Text, default="")
     contacted = Column(Boolean, default=False)
     contact_date = Column(String(50), nullable=True)
     response = Column(String(100), default="No response yet")
@@ -171,6 +180,15 @@ class Person(Base):
             "connection_status": self.connection_status,
             "relevant_job_id": self.relevant_job_id,
             "relevance_reason": self.relevance_reason,
+            "country": self.country,
+            "email": self.email or "",
+            "email_type": self.email_type,
+            "email_source": self.email_source,
+            "verification_status": self.verification_status,
+            "confidence_score": self.confidence_score,
+            "skills_matched": self.skills_matched,
+            "relevance_score": self.relevance_score,
+            "score_breakdown": self.score_breakdown,
             "contacted": "Yes" if self.contacted else "No",
             "contact_date": self.contact_date or "",
             "response": self.response,
@@ -245,6 +263,11 @@ class Outreach(Base):
     message_type = Column(
         String(100), default="Connection Request"
     )  # Connection Request, Referral Request, 2025 Off-Campus Inquiry, Follow-up
+    channel = Column(String(50), default="LinkedIn Note")  # Email, LinkedIn Note, InMail
+    subject = Column(String(250), default="")
+    objective = Column(String(100), default="Job Opportunity")  # Job Opportunity, Referral, Project Pitch, Connection
+    timezone_recommended_send = Column(String(100), default="")
+    country = Column(String(100), default="India")
     message = Column(Text, nullable=False)
     date = Column(DateTime, default=datetime.utcnow)
     status = Column(
@@ -264,6 +287,11 @@ class Outreach(Base):
             "company": self.company,
             "job": self.job,
             "message_type": self.message_type,
+            "channel": self.channel,
+            "subject": self.subject or "",
+            "objective": self.objective or "",
+            "timezone_recommended_send": self.timezone_recommended_send or "",
+            "country": self.country or "",
             "message": self.message,
             "date": self.date.strftime("%Y-%m-%d %H:%M") if self.date else "",
             "status": self.status,
@@ -373,8 +401,45 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def init_db():
-    """Create all tables and seed standard resume versions if not present."""
+    """Create all tables, auto-migrate new columns, and seed standard resume versions if not present."""
     Base.metadata.create_all(bind=engine)
+
+    # Auto-migrate SQLite columns if table already existed without new columns
+    try:
+        with engine.connect() as conn:
+            cursor = conn.exec_driver_sql("PRAGMA table_info(people)").fetchall()
+            existing_people_cols = {col[1] for col in cursor}
+            people_cols_to_add = [
+                ("country", "VARCHAR(100) DEFAULT 'India'"),
+                ("email", "VARCHAR(150)"),
+                ("email_type", "VARCHAR(50) DEFAULT 'Business'"),
+                ("email_source", "VARCHAR(200) DEFAULT 'Public Web / Hunter.io'"),
+                ("verification_status", "VARCHAR(50) DEFAULT 'Unverified'"),
+                ("confidence_score", "FLOAT DEFAULT 0.0"),
+                ("skills_matched", "VARCHAR(300) DEFAULT ''"),
+                ("relevance_score", "FLOAT DEFAULT 85.0"),
+                ("score_breakdown", "TEXT DEFAULT ''"),
+            ]
+            for col_name, col_def in people_cols_to_add:
+                if col_name not in existing_people_cols:
+                    conn.exec_driver_sql(f"ALTER TABLE people ADD COLUMN {col_name} {col_def}")
+
+            cursor = conn.exec_driver_sql("PRAGMA table_info(outreach)").fetchall()
+            existing_outreach_cols = {col[1] for col in cursor}
+            outreach_cols_to_add = [
+                ("channel", "VARCHAR(50) DEFAULT 'LinkedIn Note'"),
+                ("subject", "VARCHAR(250) DEFAULT ''"),
+                ("objective", "VARCHAR(100) DEFAULT 'Job Opportunity'"),
+                ("timezone_recommended_send", "VARCHAR(100) DEFAULT ''"),
+                ("country", "VARCHAR(100) DEFAULT 'India'"),
+            ]
+            for col_name, col_def in outreach_cols_to_add:
+                if col_name not in existing_outreach_cols:
+                    conn.exec_driver_sql(f"ALTER TABLE outreach ADD COLUMN {col_name} {col_def}")
+            conn.commit()
+    except Exception:
+        pass
+
     session = SessionLocal()
     try:
         # Seed standard resume profiles

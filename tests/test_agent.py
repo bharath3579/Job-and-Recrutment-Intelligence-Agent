@@ -12,11 +12,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
 
 from agent.database import Base, Company, Job, Outreach, Person, RecruitmentSignal
+from agent.connectors.career_site_connector import CareerSiteConnector
+from agent.connectors.hunter_connector import HunterConnector
+from agent.connectors.public_search_connector import PublicSearchConnector
+from agent.services.ai_outreach_engine import AIOutreachEngine
 from agent.services.company_scout import CompanyScout
 from agent.services.deduplicator import Deduplicator
 from agent.services.email_ingest import EmailIngest
 from agent.services.excel_sync import ExcelSync
 from agent.services.full_scanner import FullScanner
+from agent.services.global_career_search import GlobalCareerSearch
 from agent.services.outreach_generator import OutreachGenerator
 from agent.services.query_builder import QueryBuilder
 from agent.services.reporter import Reporter
@@ -214,3 +219,121 @@ def test_reports(test_db):
 
     weekly = Reporter.generate_weekly_report(test_db)
     assert "Weekly Recruitment & Market Intelligence Report" in weekly
+
+
+def test_hunter_connector():
+    """Test Hunter.io domain search, email finder, and verification."""
+    # 1. Domain Search
+    domain_res = HunterConnector.domain_search("Databricks")
+    assert domain_res["success"] is True
+    assert domain_res["domain"] == "databricks.com"
+    assert "pattern" in domain_res
+
+    # 2. Email Finder
+    finder_res = HunterConnector.find_email("Alex", "Morgan", "Databricks")
+    assert finder_res["success"] is True
+    assert "@databricks.com" in finder_res["email"]
+    assert "score" in finder_res
+    assert "verification_status" in finder_res
+
+    # 3. Email Verifier
+    verifier_res = HunterConnector.verify_email("alex.morgan@databricks.com")
+    assert verifier_res["success"] is True
+    assert verifier_res["deliverable"] is True
+
+
+def test_career_site_connector():
+    """Test official career site and ATS integration (Greenhouse/Lever/Direct)."""
+    jobs = CareerSiteConnector.search_company_careers("Databricks", role="Data Engineer", country="United States", limit=3)
+    assert len(jobs) > 0
+    assert "Databricks" in jobs[0]["company"]
+    assert "job_url" in jobs[0]
+    assert "source" in jobs[0]
+
+
+def test_public_search_connector():
+    """Test public professional search for Recruiters, Managers, and Referrers."""
+    people = PublicSearchConnector.discover_people(
+        company="Cognizant",
+        role="Data Engineer",
+        country="India",
+        persona_category="All relevant levels",
+    )
+    assert len(people) >= 3
+    types = [p["person_type"] for p in people]
+    assert any("Recruiter" in t for t in types)
+    assert any("Manager" in t or "Lead" in t for t in types)
+    for p in people:
+        assert "linkedin_url" in p
+        assert "linkedin.com/search" in p["linkedin_url"]
+
+
+def test_ai_outreach_engine():
+    """Test AI-tailored drafts, anti-spam <300 char limits, and timezone recommendations."""
+    # Test Job Opportunity Inquiry to Recruiter
+    drafts_recruiter = AIOutreachEngine.generate_drafts(
+        recipient_name="Pooja Sharma",
+        company="Databricks",
+        job_title="Data Engineer",
+        person_type="Technical Recruiter",
+        country="United States",
+        objective="Ask about a job opportunity",
+        skills="Azure, Databricks, PySpark",
+    )
+    assert len(drafts_recruiter["linkedin_note"]) <= 300
+    assert "Pooja" in drafts_recruiter["linkedin_note"]
+    assert "Databricks" in drafts_recruiter["linkedin_note"]
+    assert "subject" in drafts_recruiter
+    assert "timezone_recommendation" in drafts_recruiter
+    assert "EST" in drafts_recruiter["timezone_recommendation"]
+
+    # Test Referral Request (Clean 1st-person, NO copy-paste referral packet)
+    drafts_referral = AIOutreachEngine.generate_drafts(
+        recipient_name="Karthik R",
+        company="Snowflake",
+        job_title="Data Platform Engineer",
+        person_type="Senior Data Engineer",
+        country="India",
+        objective="Ask for a referral",
+        skills="Databricks, PySpark, Delta Lake",
+    )
+    assert len(drafts_referral["linkedin_note"]) <= 300
+    assert "referral" in drafts_referral["linkedin_note"].lower()
+    assert "Bharath Kumar" in drafts_referral["email_body"]
+    assert "IST" in drafts_referral["timezone_recommendation"]
+
+
+def test_global_career_search(test_db):
+    """Test End-to-end Global Career Search pipeline."""
+    result = GlobalCareerSearch.execute_search(
+        db=test_db,
+        company="Stripe",
+        role="Data Engineer",
+        skills="PySpark, Databricks, SQL, Delta Lake",
+        country="United States",
+        people_to_find="All relevant levels",
+        outreach_objective="Ask about a job opportunity",
+    )
+    assert result["success"] is True
+    assert result["company"] == "Stripe"
+    assert len(result["jobs_found"]) > 0
+    assert len(result["people_found"]) > 0
+    assert len(result["drafts_created"]) > 0
+
+    # Verify database state
+    comp = test_db.query(Company).filter(Company.company == "Stripe").first()
+    assert comp is not None
+
+    people = test_db.query(Person).filter(Person.company == "Stripe").all()
+    assert len(people) > 0
+    for p in people:
+        assert p.email is not None
+        assert p.confidence_score > 0
+        assert p.country == "United States"
+
+    outreach = test_db.query(Outreach).filter(Outreach.company == "Stripe").all()
+    assert len(outreach) > 0
+    for o in outreach:
+        assert o.status == "Pending Approval"
+        assert o.channel in ["LinkedIn Note", "Email"]
+

@@ -24,6 +24,15 @@ def main():
     # Command: scan (Mode 1)
     subparsers.add_parser("scan", help="Run Mode 1: Full Recruitment Scan (Roles x Skills x Signals)")
 
+    # Command: global-search
+    gs_parser = subparsers.add_parser("global-search", help="Execute AI-powered Global Career Search for a specific company")
+    gs_parser.add_argument("company", help="Target company name (e.g. Databricks, Stripe, Snowflake)")
+    gs_parser.add_argument("--role", default="Data Engineer", help="Target role (default: Data Engineer)")
+    gs_parser.add_argument("--skills", default="Azure, Databricks, PySpark, SQL", help="Skills stack")
+    gs_parser.add_argument("--country", default="India", help="Target country (e.g. India, United States, United Kingdom)")
+    gs_parser.add_argument("--people", default="All relevant levels", help="People to find")
+    gs_parser.add_argument("--objective", default="Ask about a job opportunity", help="Outreach objective")
+
     # Command: company-connect (Mode 2)
     scout_parser = subparsers.add_parser("company-connect", help="Run Mode 2: Targeted Company Direct Connect")
     scout_parser.add_argument("company", help="Target company name (e.g. Cognizant, LTIMindtree)")
@@ -71,6 +80,27 @@ def main():
             print(f"    - Signals Tracked: {res['new_signals_count']}")
             print(f"    - People Discovered: {res['new_people_count']}")
             print(f"    - Outreach Drafted: {res['new_drafts_count']}")
+            print(f"    - Excel Tracker: Updated recruitment_tracker.xlsx")
+
+        elif args.command == "global-search":
+            from agent.services.global_career_search import GlobalCareerSearch
+            print(f"\n[+] Executing Global Career Search for '{args.company}' in {args.country}...")
+            res = GlobalCareerSearch.execute_search(
+                db=db,
+                company=args.company,
+                role=args.role,
+                skills=args.skills,
+                country=args.country,
+                people_to_find=args.people,
+                outreach_objective=args.objective,
+            )
+            ExcelSync.sync_database_to_excel(db)
+            print(f"[OK] Global Search Completed for {res['company']}!")
+            print(f"    - Corporate Domain: {res['domain']}")
+            print(f"    - Jobs Discovered: {len(res['jobs_found'])}")
+            print(f"    - People Enriched: {len(res['people_found'])}")
+            print(f"    - Outreach Drafted: {len(res['drafts_created'])}")
+            print(f"    - Recommended Send: {res['recommended_send_time']}")
             print(f"    - Excel Tracker: Updated recruitment_tracker.xlsx")
 
         elif args.command == "company-connect":

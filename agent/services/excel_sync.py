@@ -132,10 +132,10 @@ class ExcelSync:
     @classmethod
     def _populate_people(cls, ws, people: List[Person]):
         headers = [
-            "Person ID", "Name", "Company", "Job Title", "LinkedIn URL",
+            "Person ID", "Name", "Company", "Country", "Job Title", "Email",
+            "Verification Status", "Confidence Score", "Relevance Score", "LinkedIn URL",
             "Person Type", "Connection Status", "Relevant Job ID", "Relevance Reason",
-            "Contacted", "Contact Date", "Response", "Referral Requested",
-            "Referral Status", "Last Interaction", "Next Action", "Notes"
+            "Contacted", "Contact Date", "Response", "Notes"
         ]
         cls._apply_header_style(ws, headers)
 
@@ -144,7 +144,12 @@ class ExcelSync:
                 p.person_id,
                 p.name,
                 p.company,
+                getattr(p, "country", "India"),
                 p.job_title,
+                getattr(p, "email", "") or "",
+                getattr(p, "verification_status", "Unverified"),
+                getattr(p, "confidence_score", 0.0),
+                getattr(p, "relevance_score", 85.0),
                 p.linkedin_url or "",
                 p.person_type,
                 p.connection_status,
@@ -153,10 +158,6 @@ class ExcelSync:
                 "Yes" if p.contacted else "No",
                 p.contact_date or "",
                 p.response or "",
-                "Yes" if p.referral_requested else "No",
-                p.referral_status or "",
-                p.last_interaction or "",
-                p.next_action or "",
                 p.notes or "",
             ]
             ws.append(row)
@@ -205,9 +206,9 @@ class ExcelSync:
     @classmethod
     def _populate_outreach(cls, ws, outreach_list: List[Outreach]):
         headers = [
-            "Outreach ID", "Person", "Company", "Job", "Message Type",
-            "Message", "Date", "Status", "Response", "Follow-up Date",
-            "Referral Status", "Notes"
+            "Outreach ID", "Person", "Company", "Job", "Channel", "Objective",
+            "Recommended Send Time", "Subject", "Message", "Date", "Status",
+            "Response", "Follow-up Date", "Notes"
         ]
         cls._apply_header_style(ws, headers)
 
@@ -217,13 +218,15 @@ class ExcelSync:
                 o.person,
                 o.company,
                 o.job,
-                o.message_type,
+                getattr(o, "channel", "LinkedIn Note"),
+                getattr(o, "objective", "Job Opportunity"),
+                getattr(o, "timezone_recommended_send", ""),
+                getattr(o, "subject", ""),
                 o.message,
                 o.date.strftime("%Y-%m-%d %H:%M") if o.date else "",
                 o.status,
                 o.response,
                 o.follow_up_date or "",
-                o.referral_status,
                 o.notes or "",
             ]
             ws.append(row)

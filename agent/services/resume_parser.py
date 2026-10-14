@@ -49,10 +49,10 @@ class ResumeParser:
         full_text = "\n".join(full_text_lines)
 
         # 1. Contact Information Extraction
-        email_match = re.search(r"[\w\.-]+@[\w\.-]+\.\w+", full_text)
-        phone_match = re.search(r"(?:\+91[\s\-]?)?[6-9]\d{9}", full_text)
-        linkedin_match = re.search(r"https?://(?:www\.)?linkedin\.com/in/[\w\-]+", full_text, re.I)
-        github_match = re.search(r"https?://(?:www\.)?github\.com/[\w\-]+", full_text, re.I)
+        email_match = re.search(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", full_text)
+        phone_match = re.search(r"(?:\+91[\s\-]?)?[6-9]\d{4}[\s\-]?\d{5}", full_text)
+        linkedin_match = re.search(r"(?:https?://)?(?:www\.)?linkedin\.com/in/[\w\-]+", full_text, re.I)
+        github_match = re.search(r"(?:https?://)?(?:www\.)?github\.com/[\w\-]+", full_text, re.I)
 
         # 2. Extract Skills
         skills_detected = []

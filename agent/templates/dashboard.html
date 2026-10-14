@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Recruitment Intelligence Agent</title>
+    <title>Global Career Outreach Platform</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Alpine.js CDN -->
@@ -40,30 +40,33 @@
     <header class="bg-slate-900 text-white shadow-md sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
             <div class="flex items-center space-x-3">
-                <div class="h-9 w-9 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white shadow">
-                    DE
+                <div class="h-9 w-9 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-lg flex items-center justify-center font-bold text-white shadow">
+                    🌐
                 </div>
                 <div>
-                    <h1 class="text-base sm:text-lg font-bold tracking-tight">Recruitment Intelligence Agent</h1>
-                    <p class="text-xs text-blue-300 hidden sm:block">Bharath Kumar • B.Tech LNMIIT 2025 • Azure & Databricks</p>
+                    <h1 class="text-base sm:text-lg font-bold tracking-tight">Global Career Outreach Platform</h1>
+                    <p class="text-xs text-blue-300 hidden sm:block">AI-Powered Job Discovery • People Intelligence • Hunter.io • CRM</p>
                 </div>
             </div>
 
             <!-- ACTION BUTTONS -->
             <div class="flex items-center space-x-2">
-                <button @click="showCompanyModal = true" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold shadow flex items-center space-x-1.5 transition">
-                    <span>🏢</span>
-                    <span>Direct Company Connect</span>
+                <button @click="currentTab = 'search'" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold shadow flex items-center space-x-1.5 transition">
+                    <span>🎯</span>
+                    <span>Target Search</span>
                 </button>
-                <button @click="triggerFullScan()" :disabled="scanning" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold shadow flex items-center space-x-1.5 transition">
-                    <span x-show="!scanning">🔍</span>
-                    <span x-show="scanning" class="animate-spin">⏳</span>
-                    <span x-text="scanning ? 'Scanning...' : 'Run Full Scan'"></span>
+                <button @click="showEmailModal = true" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-2.5 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1" title="Ingest Recruiter Email">
+                    <span>📥</span>
+                    <span class="hidden md:inline">Ingest Email</span>
                 </button>
                 <button @click="syncExcel()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-2.5 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1" title="Sync Excel">
                     <span>📊</span>
                     <span class="hidden md:inline">Sync Excel</span>
                 </button>
+                <a href="/api/v1/download-excel" target="_blank" class="bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1" title="Download Excel">
+                    <span>📥</span>
+                    <span class="hidden md:inline">Excel</span>
+                </a>
             </div>
         </div>
     </header>
@@ -77,35 +80,45 @@
     <!-- MAIN BODY -->
     <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6 pb-24 sm:pb-8">
 
-        <!-- KPI CARDS -->
+        <!-- KPI SUMMARY CARDS -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">High Match Jobs</div>
-                <div class="text-2xl font-bold text-blue-700 mt-1" x-text="stats.high_match_jobs || 0"></div>
-                <div class="text-xs text-slate-400 mt-0.5">Score ≥ 80%</div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:border-blue-400 transition" @click="currentTab = 'jobs'">
+                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Discovered Roles</div>
+                <div class="text-2xl font-bold text-blue-700 mt-1" x-text="stats.total_jobs || 0"></div>
+                <div class="text-xs text-slate-400 mt-0.5" x-text="(stats.high_match_jobs || 0) + ' High Match (≥80%)'"></div>
             </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Hiring Signals</div>
-                <div class="text-2xl font-bold text-emerald-600 mt-1" x-text="stats.active_signals || 0"></div>
-                <div class="text-xs text-slate-400 mt-0.5">Drives & Recruiter posts</div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:border-indigo-400 transition" @click="currentTab = 'people'">
+                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">People Intelligence</div>
+                <div class="text-2xl font-bold text-indigo-600 mt-1" x-text="people.length || 0"></div>
+                <div class="text-xs text-slate-400 mt-0.5">Decision-makers & Leads</div>
             </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pending Approvals</div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:border-amber-400 transition" @click="currentTab = 'approvals'">
+                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Approval Queue</div>
                 <div class="text-2xl font-bold text-amber-500 mt-1" x-text="stats.pending_approvals || 0"></div>
-                <div class="text-xs text-slate-400 mt-0.5">Drafted outreach notes</div>
+                <div class="text-xs text-slate-400 mt-0.5">Pending Human Review</div>
             </div>
-            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tracked Pipeline</div>
-                <div class="text-2xl font-bold text-purple-600 mt-1" x-text="(stats.applied_count || 0) + ' Applied'"></div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:border-purple-400 transition" @click="currentTab = 'crm'">
+                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Outreach CRM</div>
+                <div class="text-2xl font-bold text-purple-600 mt-1" x-text="(stats.applied_count || 0) + ' Active'"></div>
                 <div class="text-xs text-slate-400 mt-0.5" x-text="(stats.interviews_count || 0) + ' Interviews'"></div>
             </div>
         </div>
 
         <!-- NAVIGATION TABS -->
         <div class="flex space-x-2 border-b border-slate-200 overflow-x-auto pb-1 text-sm font-medium">
+            <button @click="currentTab = 'search'" :class="currentTab === 'search' ? 'border-b-2 border-blue-600 text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'" class="pb-2 px-3 whitespace-nowrap flex items-center space-x-1.5">
+                <span>🎯 Global Search</span>
+            </button>
+            <button @click="currentTab = 'people'" :class="currentTab === 'people' ? 'border-b-2 border-blue-600 text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'" class="pb-2 px-3 whitespace-nowrap flex items-center space-x-1.5">
+                <span>👥 People Intelligence</span>
+                <span x-show="people.length > 0" class="bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded-full font-bold" x-text="people.length"></span>
+            </button>
             <button @click="currentTab = 'approvals'" :class="currentTab === 'approvals' ? 'border-b-2 border-blue-600 text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'" class="pb-2 px-3 whitespace-nowrap flex items-center space-x-1.5">
-                <span>🛡️ Human Approval Queue</span>
+                <span>🛡️ Approval Queue</span>
                 <span x-show="approvals.length > 0" class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full font-bold" x-text="approvals.length"></span>
+            </button>
+            <button @click="currentTab = 'crm'" :class="currentTab === 'crm' ? 'border-b-2 border-blue-600 text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'" class="pb-2 px-3 whitespace-nowrap flex items-center space-x-1.5">
+                <span>📊 Outreach CRM</span>
             </button>
             <button @click="currentTab = 'jobs'" :class="currentTab === 'jobs' ? 'border-b-2 border-blue-600 text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'" class="pb-2 px-3 whitespace-nowrap">
                 💼 Jobs Explorer (<span x-text="jobs.length"></span>)
@@ -113,25 +126,249 @@
             <button @click="currentTab = 'signals'" :class="currentTab === 'signals' ? 'border-b-2 border-blue-600 text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'" class="pb-2 px-3 whitespace-nowrap">
                 📡 Recruitment Signals (<span x-text="signals.length"></span>)
             </button>
-            <button @click="currentTab = 'people'" :class="currentTab === 'people' ? 'border-b-2 border-blue-600 text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'" class="pb-2 px-3 whitespace-nowrap">
-                👥 People & Recruiters (<span x-text="people.length"></span>)
-            </button>
             <button @click="currentTab = 'profile'" :class="currentTab === 'profile' ? 'border-b-2 border-blue-600 text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'" class="pb-2 px-3 whitespace-nowrap">
-                📄 ATS Resume & Profile
-            </button>
-            <button @click="currentTab = 'reports'" :class="currentTab === 'reports' ? 'border-b-2 border-blue-600 text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'" class="pb-2 px-3 whitespace-nowrap">
-                📑 Intelligence Reports
-            </button>
-            <button @click="currentTab = 'runs'" :class="currentTab === 'runs' ? 'border-b-2 border-blue-600 text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-800'" class="pb-2 px-3 whitespace-nowrap">
-                ⚙️ Pipeline Runs & Logs
+                📄 ATS Resume & Config
             </button>
         </div>
 
-        <!-- TAB 1: HUMAN APPROVAL QUEUE -->
+        <!-- ========================================================================= -->
+        <!-- TAB 1: GLOBAL COMPANY AND PEOPLE SEARCH COMMAND CENTER -->
+        <!-- ========================================================================= -->
+        <div x-show="currentTab === 'search'" class="space-y-6">
+            <div class="bg-gradient-to-r from-slate-900 to-indigo-950 rounded-2xl p-6 text-white shadow-xl border border-slate-800">
+                <div class="max-w-3xl">
+                    <span class="bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                        AI Global Career Engine
+                    </span>
+                    <h2 class="text-xl sm:text-2xl font-extrabold mt-3 tracking-tight">
+                        Targeted Company & People Intelligence Discovery
+                    </h2>
+                    <p class="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed">
+                        Specify any target company worldwide. The agent orchestrates public career portals (Greenhouse/Lever), public professional profiles, Hunter.io business email discovery, relevance scoring, and generates tailored messages ready for your review.
+                    </p>
+                </div>
+
+                <!-- SEARCH FORM -->
+                <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-slate-800">
+                    <!-- Target Company -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1">Target Company</label>
+                        <input type="text" x-model="searchForm.company" placeholder="e.g. Databricks, Stripe, Cognizant, Snowflake"
+                               class="w-full bg-white text-slate-900 rounded-lg px-3 py-2 text-sm border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+                        <!-- Quick Company Suggestions -->
+                        <div class="flex flex-wrap gap-1 mt-1.5">
+                            <button @click="searchForm.company = 'Databricks'" class="text-[10px] bg-slate-800 text-slate-300 hover:text-white px-1.5 py-0.5 rounded">Databricks</button>
+                            <button @click="searchForm.company = 'Snowflake'" class="text-[10px] bg-slate-800 text-slate-300 hover:text-white px-1.5 py-0.5 rounded">Snowflake</button>
+                            <button @click="searchForm.company = 'Stripe'" class="text-[10px] bg-slate-800 text-slate-300 hover:text-white px-1.5 py-0.5 rounded">Stripe</button>
+                            <button @click="searchForm.company = 'Cognizant'" class="text-[10px] bg-slate-800 text-slate-300 hover:text-white px-1.5 py-0.5 rounded">Cognizant</button>
+                            <button @click="searchForm.company = 'LTIMindtree'" class="text-[10px] bg-slate-800 text-slate-300 hover:text-white px-1.5 py-0.5 rounded">LTIMindtree</button>
+                        </div>
+                    </div>
+
+                    <!-- Target Role -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1">Target Role</label>
+                        <input type="text" x-model="searchForm.role" placeholder="e.g. Data Engineer, Azure Data Engineer"
+                               class="w-full bg-white text-slate-900 rounded-lg px-3 py-2 text-sm border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+                    </div>
+
+                    <!-- Target Country -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1">Target Country</label>
+                        <select x-model="searchForm.country" class="w-full bg-white text-slate-900 rounded-lg px-3 py-2 text-sm border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+                            <option value="India">India (IST / UTC+5:30)</option>
+                            <option value="United States">United States (EST / PST)</option>
+                            <option value="United Kingdom">United Kingdom (GMT / BST)</option>
+                            <option value="Germany">Germany (CET / Europe)</option>
+                            <option value="Canada">Canada (EST / America)</option>
+                            <option value="Singapore">Singapore (SGT / Asia)</option>
+                            <option value="Australia">Australia (AEST)</option>
+                            <option value="Remote">Remote Worldwide</option>
+                        </select>
+                    </div>
+
+                    <!-- Skills -->
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1">Key Technical Skills & Stack</label>
+                        <input type="text" x-model="searchForm.skills" placeholder="Azure, Databricks, PySpark, SQL, Delta Lake, Unity Catalog"
+                               class="w-full bg-white text-slate-900 rounded-lg px-3 py-2 text-sm border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+                    </div>
+
+                    <!-- People to Find -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1">People to Find</label>
+                        <select x-model="searchForm.people_to_find" class="w-full bg-white text-slate-900 rounded-lg px-3 py-2 text-sm border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+                            <option value="All relevant levels">All relevant levels (Recruiters + Managers + Peers)</option>
+                            <option value="Recruiters and HR">Recruiters and HR (Talent Acquisition / HRBP)</option>
+                            <option value="Hiring managers and senior engineers">Hiring managers and senior engineers</option>
+                            <option value="Employees who could refer me">Employees who could refer me (Alumni & Peers)</option>
+                        </select>
+                    </div>
+
+                    <!-- Outreach Objective -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 uppercase tracking-wide mb-1">Outreach Objective</label>
+                        <select x-model="searchForm.outreach_objective" class="w-full bg-white text-slate-900 rounded-lg px-3 py-2 text-sm border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+                            <option value="Ask about a job opportunity">Ask about a job opportunity</option>
+                            <option value="Ask for a referral">Ask for a referral</option>
+                            <option value="Share a project idea">Share a project idea / architecture pitch</option>
+                            <option value="Build a professional connection">Build a professional connection</option>
+                        </select>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="flex items-end">
+                        <button @click="executeGlobalSearch()" :disabled="searchingGlobal || !searchForm.company.trim()"
+                                class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-2.5 px-4 rounded-lg text-sm shadow-lg transition flex items-center justify-center space-x-2 disabled:opacity-50">
+                            <span x-show="!searchingGlobal">⚡</span>
+                            <span x-show="searchingGlobal" class="animate-spin">⏳</span>
+                            <span x-text="searchingGlobal ? 'Orchestrating Search & Intelligence...' : 'Find Decision Makers & Draft Messages'"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEARCH RESULTS SUMMARY CALLOUT -->
+            <div x-show="lastSearchResult" x-cloak class="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 shadow-sm space-y-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xl">✅</span>
+                        <h3 class="font-bold text-emerald-950 text-base">
+                            Intelligence Discovery Completed for <span x-text="lastSearchResult?.company"></span> (<span x-text="lastSearchResult?.country"></span>)
+                        </h3>
+                    </div>
+                    <span class="text-xs font-semibold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full"
+                          x-text="'Optimal Send Time: ' + (lastSearchResult?.recommended_send_time || 'Tue-Thu 9:00 AM')"></span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-emerald-900">
+                    <div class="bg-white p-3 rounded-lg border border-emerald-100">
+                        <strong class="text-slate-800">Corporate Domain:</strong> <span class="font-mono" x-text="lastSearchResult?.domain"></span>
+                    </div>
+                    <div class="bg-white p-3 rounded-lg border border-emerald-100">
+                        <strong class="text-slate-800">Jobs Found:</strong> <span class="font-bold text-blue-700" x-text="lastSearchResult?.jobs_found?.length || 0"></span>
+                    </div>
+                    <div class="bg-white p-3 rounded-lg border border-emerald-100">
+                        <strong class="text-slate-800">People Enriched & Drafted:</strong> <span class="font-bold text-purple-700" x-text="lastSearchResult?.people_found?.length || 0"></span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2 pt-2">
+                    <button @click="currentTab = 'people'" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition shadow-sm">
+                        View People Intelligence Matrix →
+                    </button>
+                    <button @click="currentTab = 'approvals'" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition shadow-sm">
+                        Review Outreach Drafts in Approval Queue →
+                    </button>
+                </div>
+            </div>
+
+            <!-- POPULAR TARGET COMPANIES QUICK SELECTOR -->
+            <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm space-y-3">
+                <h3 class="font-bold text-slate-800 text-sm">Target Company Directory</h3>
+                <p class="text-xs text-slate-500">Quick-select top global cloud, analytics, and data engineering employers to inspect open roles and decision makers:</p>
+                <div class="flex flex-wrap gap-2">
+                    <template x-for="c in popularCompanies" :key="c">
+                        <button @click="searchForm.company = c; executeGlobalSearch()"
+                                class="bg-slate-50 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition">
+                            <span x-text="c"></span>
+                        </button>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- TAB 2: PEOPLE INTELLIGENCE & CONTACT HUB -->
+        <!-- ========================================================================= -->
+        <div x-show="currentTab === 'people'" class="space-y-4">
+            <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 text-xs sm:text-sm text-indigo-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                <div>
+                    <strong>👥 People Intelligence:</strong> Evaluates role relevance, company seniority, and derives contact channels via Hunter.io API. Never treats unverified guesses as confirmed.
+                </div>
+                <span class="text-xs bg-indigo-100 text-indigo-800 font-bold px-2 py-0.5 rounded-full" x-text="people.length + ' Contacts Identified'"></span>
+            </div>
+
+            <template x-if="people.length === 0">
+                <div class="bg-white rounded-xl p-12 text-center border border-slate-200 text-slate-400">
+                    <div class="text-4xl mb-2">🔍</div>
+                    <div class="font-semibold text-slate-600">No people discovered yet</div>
+                    <p class="text-xs mt-1">Run a Global Career Search above to identify recruiters, engineering managers, and alumni.</p>
+                </div>
+            </template>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <template x-for="p in people" :key="p.person_id">
+                    <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-3">
+                        <div>
+                            <!-- Header & Relevance Score -->
+                            <div class="flex items-start justify-between">
+                                <span class="text-xs font-bold px-2.5 py-0.5 rounded-full"
+                                      :class="{
+                                          'bg-blue-100 text-blue-800': p.person_type.includes('Recruiter'),
+                                          'bg-purple-100 text-purple-800': p.person_type.includes('Manager') || p.person_type.includes('Lead'),
+                                          'bg-emerald-100 text-emerald-800': p.person_type.includes('Alumni') || p.person_type.includes('Peer')
+                                      }"
+                                      x-text="p.person_type"></span>
+
+                                <!-- Relevance Badge -->
+                                <div class="text-right">
+                                    <div class="text-xs font-extrabold text-blue-700" x-text="(p.relevance_score || 88) + '% Match'"></div>
+                                    <div class="text-[10px] text-slate-400" x-text="p.country || 'India'"></div>
+                                </div>
+                            </div>
+
+                            <h3 class="font-bold text-slate-900 text-base mt-2" x-text="p.name"></h3>
+                            <div class="text-xs text-slate-600 font-medium" x-text="p.job_title"></div>
+                            <div class="text-xs text-slate-500 font-semibold mt-0.5" x-text="p.company"></div>
+
+                            <!-- Hunter.io & Business Contact Pill -->
+                            <div class="mt-3 p-2.5 bg-slate-50 rounded-lg border border-slate-200 space-y-1.5 text-xs">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Business Contact:</span>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded"
+                                          :class="{
+                                              'bg-emerald-100 text-emerald-800 border border-emerald-300': p.verification_status?.includes('Verified'),
+                                              'bg-amber-100 text-amber-800 border border-amber-300': p.verification_status?.includes('Pattern') || p.verification_status?.includes('Deliverable'),
+                                              'bg-slate-100 text-slate-600': !p.verification_status || p.verification_status === 'Unverified'
+                                          }"
+                                          x-text="p.verification_status || 'Pattern Inferred'"></span>
+                                </div>
+                                <div class="flex items-center justify-between font-mono text-slate-800 break-all">
+                                    <span x-text="p.email || 'first.last@' + p.company.toLowerCase().replace(/[^a-z]/g, '') + '.com'"></span>
+                                    <button @click="copyToClipboard(p.email, 'Email address')" class="text-slate-400 hover:text-blue-600 ml-1 text-xs" title="Copy Email">📋</button>
+                                </div>
+                                <div class="text-[10px] text-slate-400 flex items-center justify-between">
+                                    <span x-text="'Confidence: ' + (p.confidence_score || 60) + '%'"></span>
+                                    <span x-text="p.email_source || 'Hunter.io API'"></span>
+                                </div>
+                            </div>
+
+                            <!-- Relevance Explanation -->
+                            <div class="mt-2 text-[11px] text-slate-600 italic" x-text="p.relevance_reason"></div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="pt-2 border-t border-slate-100 flex items-center space-x-2 text-xs">
+                            <a :href="p.linkedin_url" target="_blank"
+                               class="flex-1 text-center bg-slate-100 hover:bg-slate-200 text-slate-800 py-1.5 rounded-lg font-semibold transition">
+                                Profile URL ↗
+                            </a>
+                            <button @click="currentTab = 'approvals'"
+                                    class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-1.5 rounded-lg font-bold transition shadow-sm text-center">
+                                Review Draft →
+                            </button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- TAB 3: HUMAN APPROVAL QUEUE -->
+        <!-- ========================================================================= -->
         <div x-show="currentTab === 'approvals'" class="space-y-4">
             <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 sm:p-4 text-xs sm:text-sm text-amber-900 flex items-center justify-between">
                 <div>
-                    <strong>🛡️ Strict Human Approval:</strong> Connection notes and referral requests are generated as drafts. Clicking <strong>"Approve & Open LinkedIn"</strong> copies your message to the clipboard and opens the recipient's LinkedIn profile for 1-click pasting. Nothing is sent without your explicit approval.
+                    <strong>🛡️ Strict Human Approval Queue:</strong> Every message draft requires your explicit review and approval before anything is dispatched. Clicking <strong>"Approve & Copy"</strong> copies the customized note and opens the recipient's profile directly.
                 </div>
             </div>
 
@@ -139,7 +376,7 @@
                 <div class="bg-white rounded-xl p-12 text-center border border-slate-200 text-slate-400">
                     <div class="text-4xl mb-2">🎉</div>
                     <div class="font-semibold text-slate-600">Approval queue is clear!</div>
-                    <p class="text-xs mt-1">Run a full scan or scout a company to discover recruiters and draft outreach notes.</p>
+                    <p class="text-xs mt-1">Run a Global Career Search above to queue personalized drafts for approval.</p>
                 </div>
             </template>
 
@@ -147,20 +384,43 @@
                 <template x-for="item in approvals" :key="item.outreach_id">
                     <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-3">
                         <div>
+                            <!-- Header -->
                             <div class="flex items-center justify-between">
                                 <span class="bg-blue-100 text-blue-800 text-xs px-2.5 py-0.5 rounded-full font-semibold" x-text="item.message_type"></span>
                                 <span class="text-xs text-slate-400" x-text="item.date"></span>
                             </div>
+
                             <h3 class="font-bold text-slate-900 text-base mt-2" x-text="item.person"></h3>
                             <div class="text-xs text-slate-500" x-text="item.company + ' • ' + item.job"></div>
 
-                            <div class="mt-3 p-3 bg-slate-50 rounded-lg text-xs text-slate-700 whitespace-pre-wrap border border-slate-200 font-mono" x-text="item.message"></div>
+                            <!-- Channel & Timezone Recommendation Badge -->
+                            <div class="flex items-center space-x-2 mt-2">
+                                <span class="text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-mono" x-text="'Channel: ' + (item.channel || 'LinkedIn Note')"></span>
+                                <span x-show="item.timezone_recommended_send" class="text-[10px] bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded font-semibold"
+                                      x-text="'Optimal Send: ' + item.timezone_recommended_send"></span>
+                            </div>
+
+                            <!-- Subject line if present -->
+                            <div x-show="item.subject" class="mt-2 text-xs font-bold text-slate-700">
+                                <span>Subject: </span><span class="text-blue-900 font-semibold" x-text="item.subject"></span>
+                            </div>
+
+                            <!-- Message Content -->
+                            <div class="mt-2 p-3 bg-slate-50 rounded-lg text-xs text-slate-700 whitespace-pre-wrap border border-slate-200 font-mono" x-text="item.message"></div>
+                            <div class="text-[10px] text-slate-400 mt-1 flex justify-between">
+                                <span x-text="item.message.length + ' characters' + (item.message.length <= 300 ? ' (Fits LinkedIn Limit ≤300)' : ' (Full Email Format)')"></span>
+                                <button @click="copyToClipboard(item.message, 'Message text')" class="text-blue-600 hover:underline">Copy text</button>
+                            </div>
                         </div>
 
+                        <!-- Action Bar -->
                         <div class="flex items-center space-x-2 pt-2 border-t border-slate-100">
                             <button @click="approveAndOpenLinkedIn(item)" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-1.5 rounded-lg text-xs font-bold transition shadow-sm flex items-center justify-center space-x-1">
                                 <span>🚀</span>
-                                <span>Approve & Open LinkedIn</span>
+                                <span>Approve & Copy</span>
+                            </button>
+                            <button @click="markSent(item.id, item.channel)" class="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition shadow-sm" title="Mark as Sent in CRM">
+                                ✉️ Mark Sent
                             </button>
                             <button @click="openEditModal(item)" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-medium transition">
                                 Edit
@@ -174,84 +434,104 @@
             </div>
         </div>
 
-        <!-- TAB 2: JOBS EXPLORER -->
-        <div x-show="currentTab === 'jobs'" class="space-y-4">
-            <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200">
-                <div class="flex items-center space-x-2 w-full sm:w-auto">
-                    <span class="text-xs font-semibold text-slate-500">Filter Location:</span>
-                    <select x-model="jobLocationFilter" class="text-xs border border-slate-200 rounded-lg p-1.5 bg-slate-50">
-                        <option value="">All Locations</option>
-                        <option value="Hyderabad">Hyderabad</option>
-                        <option value="Remote">Remote</option>
-                        <option value="Bengaluru">Bengaluru</option>
-                        <option value="Pune">Pune</option>
-                    </select>
+        <!-- ========================================================================= -->
+        <!-- TAB 4: OUTREACH CRM & PIPELINE -->
+        <!-- ========================================================================= -->
+        <div x-show="currentTab === 'crm'" class="space-y-4">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200">
+                <div>
+                    <h3 class="font-bold text-slate-900 text-base">Outreach CRM & Follow-Up Tracker</h3>
+                    <p class="text-xs text-slate-500">Track all messages drafted, emails sent, recruiter replies, referrals requested, and application milestones.</p>
                 </div>
-                <div class="flex items-center space-x-2 w-full sm:w-auto justify-end">
-                    <button @click="showEmailModal = true" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition flex items-center space-x-1">
-                        <span>✉️</span>
-                        <span>Paste Email / Alert</span>
+                <div class="flex items-center space-x-2">
+                    <button @click="syncExcel()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition shadow-sm flex items-center space-x-1">
+                        <span>📊</span>
+                        <span>Sync to Excel</span>
                     </button>
                 </div>
             </div>
 
-            <div class="space-y-3">
-                <template x-for="job in filteredJobs" :key="job.job_id">
-                    <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition">
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <div>
-                                <div class="flex items-center space-x-2">
-                                    <span class="font-bold text-slate-900 text-base" x-text="job.job_title"></span>
-                                    <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono" x-text="job.job_id"></span>
-                                    <span class="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded font-semibold" x-text="job.freshness_tier"></span>
-                                </div>
-                                <div class="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-                                    <span class="font-semibold text-slate-700" x-text="job.company"></span>
-                                    <span>📍 <span x-text="job.location"></span> (<span x-text="job.work_mode"></span>)</span>
-                                    <span>💼 <span x-text="job.experience_required"></span></span>
-                                    <span>💰 <span x-text="job.salary"></span></span>
-                                </div>
+            <!-- CRM Data Table -->
+            <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                <table class="w-full text-left text-xs sm:text-sm">
+                    <thead class="bg-slate-50 text-slate-600 uppercase text-[11px] font-bold border-b border-slate-200">
+                        <tr>
+                            <th class="p-3">Contact & Company</th>
+                            <th class="p-3">Channel / Objective</th>
+                            <th class="p-3">Status</th>
+                            <th class="p-3">Recommended Send</th>
+                            <th class="p-3">Response / Outcome</th>
+                            <th class="p-3">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        <template x-for="item in allOutreach" :key="item.outreach_id">
+                            <tr class="hover:bg-slate-50/60 transition">
+                                <td class="p-3">
+                                    <div class="font-bold text-slate-900" x-text="item.person"></div>
+                                    <div class="text-xs text-slate-500" x-text="item.company + ' • ' + item.job"></div>
+                                </td>
+                                <td class="p-3">
+                                    <span class="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700" x-text="item.channel || 'LinkedIn Note'"></span>
+                                    <div class="text-[11px] text-slate-500 mt-0.5" x-text="item.objective || item.message_type"></div>
+                                </td>
+                                <td class="p-3">
+                                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold"
+                                          :class="{
+                                              'bg-amber-100 text-amber-800': item.status === 'Pending Approval',
+                                              'bg-blue-100 text-blue-800': item.status === 'Approved',
+                                              'bg-emerald-100 text-emerald-800': item.status === 'Sent',
+                                              'bg-purple-100 text-purple-800': item.status === 'Interview',
+                                              'bg-rose-100 text-rose-800': item.status === 'Rejected'
+                                          }"
+                                          x-text="item.status"></span>
+                                </td>
+                                <td class="p-3 text-xs text-slate-600" x-text="item.timezone_recommended_send || item.date"></td>
+                                <td class="p-3 text-xs text-slate-700" x-text="item.response || 'Pending'"></td>
+                                <td class="p-3">
+                                    <button @click="openEditModal(item)" class="text-blue-600 hover:underline text-xs font-semibold mr-2">Edit</button>
+                                    <button x-show="item.status !== 'Sent'" @click="markSent(item.id, item.channel)" class="text-emerald-600 hover:underline text-xs font-semibold">Mark Sent</button>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- TAB 5: JOBS EXPLORER -->
+        <!-- ========================================================================= -->
+        <div x-show="currentTab === 'jobs'" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <template x-for="j in jobs" :key="j.job_id">
+                    <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between">
+                                <span class="bg-blue-100 text-blue-800 text-xs px-2.5 py-0.5 rounded-full font-bold" x-text="j.match_score + '% Match'"></span>
+                                <span class="text-xs text-slate-400" x-text="j.freshness_tier"></span>
                             </div>
-                            <div class="flex items-center space-x-3 self-end sm:self-auto">
-                                <div class="text-right">
-                                    <div class="text-lg font-extrabold text-blue-700" x-text="job.match_score + '%'"></div>
-                                    <div class="text-[10px] text-slate-400 font-medium">Relevance Score</div>
-                                </div>
-                                <select @change="updateJobStatus(job.id, $event.target.value)" :value="job.application_status" class="text-xs border border-slate-300 rounded-lg p-1.5 font-semibold bg-slate-50">
-                                    <option value="Discovered">Discovered</option>
-                                    <option value="Reviewed">Reviewed</option>
-                                    <option value="Shortlisted">Shortlisted</option>
-                                    <option value="Applied">Applied</option>
-                                    <option value="Interview">Interview</option>
-                                    <option value="Offer">Offer</option>
-                                    <option value="Rejected">Rejected</option>
-                                </select>
+                            <h3 class="font-bold text-slate-900 text-base mt-2" x-text="j.job_title"></h3>
+                            <div class="text-xs font-semibold text-slate-700" x-text="j.company"></div>
+                            <div class="text-xs text-slate-500" x-text="j.location + ' • ' + j.work_mode"></div>
+
+                            <div class="mt-3 p-2.5 bg-slate-50 rounded-lg text-xs text-slate-600 border border-slate-100">
+                                <strong>Explainable Match:</strong> <span x-text="j.match_explanation"></span>
                             </div>
                         </div>
 
-                        <!-- EXPLAINABILITY REASON -->
-                        <div class="mt-3 text-xs bg-blue-50/70 text-blue-900 p-2.5 rounded-lg border border-blue-100">
-                            <strong>💡 Why Detected:</strong> <span x-text="job.match_explanation"></span>
-                        </div>
-
-                        <!-- SKILLS & ACTIONS -->
-                        <div class="mt-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500 pt-2 border-t border-slate-100">
-                            <div class="truncate">
-                                <strong>Skills:</strong> <span x-text="job.skills"></span>
-                            </div>
-                            <div class="flex items-center space-x-2 shrink-0">
-                                <a :href="job.job_url" target="_blank" class="text-blue-600 hover:underline font-semibold flex items-center space-x-1">
-                                    <span>Apply / View Link</span>
-                                    <span>↗</span>
-                                </a>
-                            </div>
+                        <div class="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                            <span class="text-slate-500" x-text="j.application_status"></span>
+                            <a :href="j.job_url" target="_blank" class="text-blue-600 font-semibold hover:underline">View Opening ↗</a>
                         </div>
                     </div>
                 </template>
             </div>
         </div>
 
-        <!-- TAB 3: RECRUITMENT SIGNALS -->
+        <!-- ========================================================================= -->
+        <!-- TAB 6: RECRUITMENT SIGNALS -->
+        <!-- ========================================================================= -->
         <div x-show="currentTab === 'signals'" class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <template x-for="sig in signals" :key="sig.signal_id">
@@ -264,9 +544,8 @@
                             <h3 class="font-bold text-slate-900 text-base mt-2" x-text="sig.company"></h3>
                             <div class="text-xs text-slate-500" x-text="'Author: ' + sig.person + ' • ' + sig.location"></div>
 
-                            <!-- EVIDENCE SNIPPET -->
                             <div class="mt-3 p-3 bg-amber-50/80 rounded-lg text-xs text-amber-950 border border-amber-200">
-                                <div class="font-bold text-[10px] text-amber-700 uppercase tracking-wide mb-1">Mandatory Evidence Snippet:</div>
+                                <div class="font-bold text-[10px] text-amber-700 uppercase tracking-wide mb-1">Evidence Snippet:</div>
                                 <div class="italic" x-text="'“' + sig.evidence + '”'"></div>
                             </div>
                         </div>
@@ -280,45 +559,11 @@
             </div>
         </div>
 
-        <!-- TAB 4: PEOPLE & RECRUITERS -->
-        <div x-show="currentTab === 'people'" class="space-y-4">
-            <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                <table class="w-full text-left text-xs sm:text-sm">
-                    <thead class="bg-slate-50 text-slate-600 uppercase text-[11px] font-bold border-b border-slate-200">
-                        <tr>
-                            <th class="p-3">Name & Title</th>
-                            <th class="p-3">Company</th>
-                            <th class="p-3">Type</th>
-                            <th class="p-3">Connection</th>
-                            <th class="p-3">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        <template x-for="p in people" :key="p.person_id">
-                            <tr class="hover:bg-slate-50/60 transition">
-                                <td class="p-3">
-                                    <div class="font-bold text-slate-900" x-text="p.name"></div>
-                                    <div class="text-xs text-slate-500" x-text="p.job_title"></div>
-                                </td>
-                                <td class="p-3 font-semibold text-slate-800" x-text="p.company"></td>
-                                <td class="p-3">
-                                    <span class="px-2 py-0.5 rounded text-xs font-semibold"
-                                          :class="p.person_type === 'LNMIIT Alumni' ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-700'"
-                                          x-text="p.person_type"></span>
-                                </td>
-                                <td class="p-3 text-xs text-slate-600" x-text="p.connection_status"></td>
-                                <td class="p-3">
-                                    <a :href="p.linkedin_url" target="_blank" class="text-blue-600 hover:underline text-xs font-semibold">LinkedIn ↗</a>
-                                </td>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
-            </div>
-        <!-- TAB: ATS RESUME & CANDIDATE PROFILE -->
+        <!-- ========================================================================= -->
+        <!-- TAB 7: ATS RESUME & CANDIDATE PROFILE -->
+        <!-- ========================================================================= -->
         <div x-show="currentTab === 'profile'" class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <!-- Profile Summary Card -->
                 <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
                     <h3 class="font-bold text-slate-900 text-base">Candidate Information</h3>
                     <div class="text-xs space-y-2 text-slate-600">
@@ -333,7 +578,6 @@
                     </div>
                 </div>
 
-                <!-- ATS docx Resume Card -->
                 <div class="md:col-span-2 bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
                     <div class="flex items-center justify-between">
                         <h3 class="font-bold text-slate-900 text-base">📄 ATS .docx Resume File</h3>
@@ -344,206 +588,118 @@
                     </p>
 
                     <div>
-                        <div class="text-xs font-bold text-slate-700 mb-1.5">Detected Skills from ATS Resume (<span x-text="parsedResume.skills ? parsedResume.skills.length : 0"></span>):</div>
+                        <div class="text-xs font-bold text-slate-700 mb-1.5">Detected Skills from ATS Resume:</div>
                         <div class="flex flex-wrap gap-1.5">
                             <template x-for="skill in (parsedResume.skills || [])" :key="skill">
                                 <span class="text-xs bg-slate-100 text-slate-800 border border-slate-200 px-2 py-0.5 rounded-md font-medium" x-text="skill"></span>
                             </template>
                         </div>
                     </div>
-
-                    <div class="pt-2 border-t border-slate-100">
-                        <div class="text-xs font-bold text-slate-700 mb-1">Extracted ATS Resume Snippet:</div>
-                        <div class="text-xs bg-slate-50 p-3 rounded-lg text-slate-600 font-mono whitespace-pre-wrap max-h-48 overflow-y-auto border border-slate-200" x-text="parsedResume.summary_snippet || 'Loading ATS resume content...'"></div>
-                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 5: INTELLIGENCE REPORTS -->
-        <div x-show="currentTab === 'reports'" class="space-y-4">
-            <div class="flex space-x-2">
-                <button @click="loadReport('daily')" :class="reportType === 'daily' ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 border border-slate-200'" class="px-3 py-1.5 rounded-lg text-xs font-bold transition">Daily Report</button>
-                <button @click="loadReport('weekly')" :class="reportType === 'weekly' ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 border border-slate-200'" class="px-3 py-1.5 rounded-lg text-xs font-bold transition">Weekly Market Report</button>
-            </div>
-            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm prose prose-sm max-w-none text-slate-800 font-sans whitespace-pre-wrap" x-text="reportContent"></div>
-        </div>
-
-        <!-- TAB 6: PIPELINE RUNS -->
-        <div x-show="currentTab === 'runs'" class="space-y-4">
-            <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                <table class="w-full text-left text-xs">
-                    <thead class="bg-slate-50 text-slate-600 uppercase text-[10px] font-bold border-b border-slate-200">
-                        <tr>
-                            <th class="p-3">Run ID</th>
-                            <th class="p-3">Mode</th>
-                            <th class="p-3">Status</th>
-                            <th class="p-3">Duration</th>
-                            <th class="p-3">Items Scanned</th>
-                            <th class="p-3">Summary</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        <template x-for="r in pipelineRuns" :key="r.run_id">
-                            <tr class="hover:bg-slate-50/60">
-                                <td class="p-3 font-mono font-semibold text-slate-700" x-text="r.run_id"></td>
-                                <td class="p-3 uppercase font-bold text-[10px]" x-text="r.mode"></td>
-                                <td class="p-3">
-                                    <span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-[10px] font-bold" x-text="r.status"></span>
-                                </td>
-                                <td class="p-3 text-slate-500" x-text="r.duration_seconds + 's'"></td>
-                                <td class="p-3 font-semibold text-slate-700" x-text="r.items_scanned"></td>
-                                <td class="p-3 text-slate-600" x-text="r.log_summary"></td>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
-            </div>
-        </div>
     </main>
 
-    <!-- MODAL 1: DIRECT COMPANY CONNECT (MODE 2) -->
-    <div x-show="showCompanyModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-200" @click.away="showCompanyModal = false">
-            <div class="flex items-center justify-between">
-                <h3 class="text-base font-bold text-slate-900">🏢 Direct Company Connect</h3>
-                <button @click="showCompanyModal = false" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
-            </div>
-            <p class="text-xs text-slate-500">
-                Heard about an on-campus drive or want to target a company? Enter the company name below.
-                The agent will scout HR / Campus Recruiters and draft a tailored 2025 off-campus inquiry note.
-            </p>
-            <div class="space-y-3">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Company Name</label>
-                    <input type="text" x-model="scoutCompanyInput" placeholder="e.g. Cognizant, LTIMindtree, Tiger Analytics" class="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Context / Reason</label>
-                    <input type="text" x-model="scoutReasonInput" placeholder="e.g. Campus hiring announced / Parallel off-campus inquiry" class="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                </div>
+    <!-- EDIT OUTREACH MODAL -->
+    <div x-show="showEditModal" x-cloak class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-200">
+            <h3 class="font-bold text-slate-900 text-lg">Edit Personalized Outreach</h3>
+            <textarea x-model="editItemMessage" rows="8" class="w-full border border-slate-300 rounded-lg p-3 text-xs sm:text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
+            <div class="flex items-center justify-between text-xs text-slate-500">
+                <span x-text="editItemMessage.length + ' characters'"></span>
+                <span :class="editItemMessage.length > 300 ? 'text-amber-600 font-bold' : 'text-emerald-600 font-bold'"
+                      x-text="editItemMessage.length <= 300 ? 'Fits LinkedIn note ≤300' : 'Email format (>300 chars)'"></span>
             </div>
             <div class="flex justify-end space-x-2 pt-2">
-                <button @click="showCompanyModal = false" class="px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
-                <button @click="executeCompanyScout()" :disabled="scouting" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-sm">
-                    <span x-text="scouting ? 'Scouting...' : 'Find HRs & Draft Outreach'"></span>
+                <button @click="showEditModal = false" class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition">Cancel</button>
+                <button @click="saveEditedOutreach()" class="px-4 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition shadow">Save & Approve</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- INGEST EMAIL MODAL -->
+    <div x-show="showEmailModal" x-cloak class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-200">
+            <h3 class="font-bold text-slate-900 text-lg">📥 Ingest Recruiter Email / Reply</h3>
+            <p class="text-xs text-slate-500">Paste any recruiter reply or interview invitation. The agent automatically detects company, date, and updates the application pipeline in your CRM.</p>
+            <textarea x-model="emailInput" rows="6" placeholder="Paste recruiter email body here..."
+                      class="w-full border border-slate-300 rounded-lg p-3 text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
+            <div class="flex justify-end space-x-2 pt-2">
+                <button @click="showEmailModal = false" class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition">Cancel</button>
+                <button @click="submitEmailIngest()" :disabled="processingEmail || !emailInput.trim()"
+                        class="px-4 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition shadow disabled:opacity-50">
+                    <span x-text="processingEmail ? 'Processing...' : 'Ingest & Update CRM'"></span>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL 2: PASTE EMAIL / ALERT -->
-    <div x-show="showEmailModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-200" @click.away="showEmailModal = false">
-            <div class="flex items-center justify-between">
-                <h3 class="text-base font-bold text-slate-900">✉️ Paste Email Alert / Reply</h3>
-                <button @click="showEmailModal = false" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
-            </div>
-            <p class="text-xs text-slate-500">
-                Paste the text of an email notification, recruiter response, or interview invitation to automatically update the tracker.
-            </p>
-            <div>
-                <textarea x-model="emailInput" rows="6" placeholder="Paste email content here (e.g. 'We would like to invite you for an interview at Tiger Analytics...')" class="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"></textarea>
-            </div>
-            <div class="flex justify-end space-x-2 pt-2">
-                <button @click="showEmailModal = false" class="px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
-                <button @click="submitEmailIngest()" :disabled="processingEmail" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-xs font-bold transition">
-                    <span x-text="processingEmail ? 'Processing...' : 'Parse & Update Tracker'"></span>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL 3: EDIT OUTREACH NOTE -->
-    <div x-show="showEditModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-200" @click.away="showEditModal = false">
-            <div class="flex items-center justify-between">
-                <h3 class="text-base font-bold text-slate-900">✏️ Edit Outreach Draft</h3>
-                <button @click="showEditModal = false" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
-            </div>
-            <div>
-                <textarea x-model="editItemMessage" rows="8" class="w-full text-xs p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none font-mono"></textarea>
-            </div>
-            <div class="flex justify-end space-x-2 pt-2">
-                <button @click="showEditModal = false" class="px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
-                <button @click="saveEditedOutreach()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition">Save & Approve</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MOBILE BOTTOM NAVIGATION -->
-    <nav class="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-2 flex justify-around text-center z-40">
-        <button @click="currentTab = 'approvals'" :class="currentTab === 'approvals' ? 'text-blue-600 font-bold' : 'text-slate-400'" class="text-[10px] flex flex-col items-center">
-            <span class="text-base">🛡️</span>
-            <span>Approvals</span>
-        </button>
-        <button @click="currentTab = 'jobs'" :class="currentTab === 'jobs' ? 'text-blue-600 font-bold' : 'text-slate-400'" class="text-[10px] flex flex-col items-center">
-            <span class="text-base">💼</span>
-            <span>Jobs</span>
-        </button>
-        <button @click="currentTab = 'signals'" :class="currentTab === 'signals' ? 'text-blue-600 font-bold' : 'text-slate-400'" class="text-[10px] flex flex-col items-center">
-            <span class="text-base">📡</span>
-            <span>Signals</span>
-        </button>
-        <button @click="currentTab = 'people'" :class="currentTab === 'people' ? 'text-blue-600 font-bold' : 'text-slate-400'" class="text-[10px] flex flex-col items-center">
-            <span class="text-base">👥</span>
-            <span>People</span>
-        </button>
-        <button @click="currentTab = 'reports'" :class="currentTab === 'reports' ? 'text-blue-600 font-bold' : 'text-slate-400'" class="text-[10px] flex flex-col items-center">
-            <span class="text-base">📑</span>
-            <span>Reports</span>
-        </button>
-    </nav>
-
-    <!-- ALPINE LOGIC -->
+    <!-- SCRIPT APPLICATION LOGIC -->
     <script>
         function agentApp() {
             return {
-                currentTab: 'approvals',
+                currentTab: 'search',
+                stats: {},
                 jobs: [],
                 signals: [],
                 people: [],
                 approvals: [],
-                pipelineRuns: [],
-                stats: {},
-                scanning: false,
-                scouting: false,
-                processingEmail: false,
-                jobLocationFilter: '',
-                showCompanyModal: false,
-                showEmailModal: false,
-                showEditModal: false,
-                scoutCompanyInput: '',
-                scoutReasonInput: 'Campus hiring announced / Parallel off-campus inquiry',
-                emailInput: '',
-                editItemId: null,
-                editItemMessage: '',
+                allOutreach: [],
                 profileData: {},
                 parsedResume: {},
-                reportType: 'daily',
-                reportContent: 'Loading report...',
-                toast: { show: false, message: '', icon: '✅' },
 
-                get filteredJobs() {
-                    if (!this.jobLocationFilter) return this.jobs;
-                    return this.jobs.filter(j => j.location.toLowerCase().includes(this.jobLocationFilter.toLowerCase()));
+                // Search Form state
+                searchForm: {
+                    company: 'Databricks',
+                    role: 'Data Engineer',
+                    skills: 'Azure, Databricks, PySpark, SQL, Delta Lake, Unity Catalog',
+                    country: 'United States',
+                    people_to_find: 'All relevant levels',
+                    outreach_objective: 'Ask about a job opportunity'
                 },
+                searchingGlobal: false,
+                lastSearchResult: null,
 
+                popularCompanies: [
+                    'Databricks', 'Snowflake', 'Stripe', 'Google', 'Microsoft',
+                    'Cognizant', 'LTIMindtree', 'Tiger Analytics', 'Fractal Analytics',
+                    'Accenture', 'Deloitte', 'TCS', 'Infosys', 'Capgemini'
+                ],
+
+                // Modals
+                showEditModal: false,
+                editItemId: null,
+                editItemMessage: '',
+                showEmailModal: false,
+                emailInput: '',
+                processingEmail: false,
+
+                // Toast
+                toast: { show: false, message: '', icon: '✅' },
                 notify(msg, icon = '✅') {
                     this.toast = { show: true, message: msg, icon: icon };
-                    setTimeout(() => { this.toast.show = false; }, 3500);
+                    setTimeout(() => { this.toast.show = false; }, 4000);
+                },
+
+                copyToClipboard(text, label = 'Content') {
+                    if (navigator.clipboard && text) {
+                        navigator.clipboard.writeText(text);
+                        this.notify(`${label} copied to clipboard!`, '📋');
+                    }
                 },
 
                 async initData() {
-                    await this.fetchStats();
-                    await this.fetchJobs();
-                    await this.fetchSignals();
-                    await this.fetchPeople();
-                    await this.fetchApprovals();
-                    await this.fetchRuns();
-                    await this.fetchProfile();
-                    await this.fetchParsedResume();
-                    await this.loadReport('daily');
+                    await Promise.all([
+                        this.fetchStats(),
+                        this.fetchJobs(),
+                        this.fetchSignals(),
+                        this.fetchPeople(),
+                        this.fetchApprovals(),
+                        this.fetchAllOutreach(),
+                        this.fetchProfile(),
+                        this.fetchParsedResume(),
+                    ]);
                 },
 
                 async fetchStats() {
@@ -581,46 +737,127 @@
                     } catch (e) { console.error(e); }
                 },
 
-                async fetchRuns() {
+                async fetchAllOutreach() {
                     try {
-                        const res = await fetch('/api/v1/pipeline/runs');
-                        this.pipelineRuns = await res.json();
+                        const res = await fetch('/api/v1/outreach');
+                        this.allOutreach = await res.json();
                     } catch (e) { console.error(e); }
                 },
 
-                async triggerFullScan() {
-                    this.scanning = true;
+                async fetchProfile() {
                     try {
-                        const res = await fetch('/api/v1/scan', { method: 'POST' });
+                        const res = await fetch('/api/v1/profile');
+                        this.profileData = await res.json();
+                    } catch (e) { console.error(e); }
+                },
+
+                async fetchParsedResume() {
+                    try {
+                        const res = await fetch('/api/v1/resume/parsed');
+                        this.parsedResume = await res.json();
+                    } catch (e) { console.error(e); }
+                },
+
+                async executeGlobalSearch() {
+                    if (!this.searchForm.company.trim()) return;
+                    this.searchingGlobal = true;
+                    try {
+                        const res = await fetch('/api/v1/search/global', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(this.searchForm)
+                        });
                         const data = await res.json();
-                        this.notify(`Scan complete: ${data.qualified_jobs_count} qualified jobs, ${data.new_drafts_count} outreach drafts.`);
+                        this.lastSearchResult = data;
+                        this.notify(`Discovered ${data.jobs_found.length} jobs & ${data.people_found.length} contacts for ${data.company}!`);
                         await this.initData();
                     } catch (e) {
-                        this.notify('Scan failed: ' + e, '⚠️');
+                        this.notify('Global search failed: ' + e, '⚠️');
                     } finally {
-                        this.scanning = false;
+                        this.searchingGlobal = false;
                     }
                 },
 
-                async executeCompanyScout() {
-                    if (!this.scoutCompanyInput.trim()) return;
-                    this.scouting = true;
+                async handleApproval(id, action) {
                     try {
-                        const res = await fetch('/api/v1/company-connect', {
+                        await fetch(`/api/v1/approvals/${id}/action`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ company: this.scoutCompanyInput, reason: this.scoutReasonInput })
+                            body: JSON.stringify({ action: action })
                         });
-                        const data = await res.json();
-                        this.showCompanyModal = false;
-                        this.scoutCompanyInput = '';
-                        this.notify(`Scouted ${data.company}: ${data.people_count} HRs found, ${data.outreach_count} drafts queued.`);
-                        this.currentTab = 'approvals';
-                        await this.initData();
+                        this.notify(action === 'approve' ? 'Outreach approved!' : 'Outreach rejected.');
+                        await this.fetchApprovals();
+                        await this.fetchAllOutreach();
+                        await this.fetchStats();
                     } catch (e) {
-                        this.notify('Scout failed: ' + e, '⚠️');
-                    } finally {
-                        this.scouting = false;
+                        this.notify('Action failed: ' + e, '⚠️');
+                    }
+                },
+
+                async markSent(outreachId, channel = 'LinkedIn Note') {
+                    try {
+                        await fetch(`/api/v1/outreach/${outreachId}/send`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ channel: channel })
+                        });
+                        this.notify(`Outreach marked Sent via ${channel} and logged in CRM!`, '✉️');
+                        await this.fetchApprovals();
+                        await this.fetchAllOutreach();
+                        await this.fetchStats();
+                    } catch (e) {
+                        this.notify('Mark sent failed: ' + e, '⚠️');
+                    }
+                },
+
+                async approveAndOpenLinkedIn(item) {
+                    try {
+                        if (navigator.clipboard) {
+                            await navigator.clipboard.writeText(item.message);
+                        }
+                        await fetch(`/api/v1/approvals/${item.id}/action`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'approve' })
+                        });
+                        let targetUrl = '';
+                        const match = this.people.find(p => p.name.toLowerCase() === item.person.toLowerCase() || p.person_id === item.person_id);
+                        if (match && match.linkedin_url) {
+                            targetUrl = match.linkedin_url;
+                        } else {
+                            const searchTerms = `${item.company} ${item.job} Recruiter ${item.country || 'India'}`;
+                            targetUrl = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(searchTerms)}`;
+                        }
+                        window.open(targetUrl, '_blank');
+                        this.notify('Message copied to clipboard! Opening LinkedIn...', '🚀');
+                        await this.fetchApprovals();
+                        await this.fetchAllOutreach();
+                        await this.fetchStats();
+                    } catch (e) {
+                        this.notify('Action failed: ' + e, '⚠️');
+                    }
+                },
+
+                openEditModal(item) {
+                    this.editItemId = item.id;
+                    this.editItemMessage = item.message;
+                    this.showEditModal = true;
+                },
+
+                async saveEditedOutreach() {
+                    try {
+                        await fetch(`/api/v1/approvals/${this.editItemId}/action`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'edit_and_approve', message: this.editItemMessage })
+                        });
+                        this.showEditModal = false;
+                        this.notify('Message updated & approved!');
+                        await this.fetchApprovals();
+                        await this.fetchAllOutreach();
+                        await this.fetchStats();
+                    } catch (e) {
+                        this.notify('Save failed: ' + e, '⚠️');
                     }
                 },
 
@@ -645,115 +882,12 @@
                     }
                 },
 
-                async handleApproval(id, action) {
-                    try {
-                        await fetch(`/api/v1/approvals/${id}/action`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ action: action })
-                        });
-                        this.notify(action === 'approve' ? 'Outreach approved & marked sent!' : 'Outreach rejected.');
-                        await this.fetchApprovals();
-                        await this.fetchStats();
-                    } catch (e) {
-                        this.notify('Action failed: ' + e, '⚠️');
-                    }
-                },
-
-                async approveAndOpenLinkedIn(item) {
-                    try {
-                        if (navigator.clipboard) {
-                            await navigator.clipboard.writeText(item.message);
-                        }
-                        await fetch(`/api/v1/approvals/${item.id}/action`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ action: 'approve' })
-                        });
-                        let targetUrl = '';
-                        const match = this.people.find(p => p.name.toLowerCase() === item.person.toLowerCase() || p.person_id === item.person_id);
-                        if (match && match.linkedin_url && match.linkedin_url.includes('search/results/people')) {
-                            targetUrl = match.linkedin_url;
-                        } else {
-                            const searchTerms = `${item.company} Campus Recruiter OR Talent Acquisition Data Engineer India`;
-                            targetUrl = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(searchTerms)}`;
-                        }
-                        window.open(targetUrl, '_blank');
-                        this.notify('Message copied to clipboard! Opening LinkedIn...', '🚀');
-                        await this.fetchApprovals();
-                        await this.fetchStats();
-                    } catch (e) {
-                        this.notify('Action failed: ' + e, '⚠️');
-                    }
-                },
-
-                async fetchProfile() {
-                    try {
-                        const res = await fetch('/api/v1/profile');
-                        this.profileData = await res.json();
-                    } catch (e) { console.error(e); }
-                },
-
-                async fetchParsedResume() {
-                    try {
-                        const res = await fetch('/api/v1/resume/parsed');
-                        this.parsedResume = await res.json();
-                    } catch (e) { console.error(e); }
-                },
-
-                openEditModal(item) {
-                    this.editItemId = item.id;
-                    this.editItemMessage = item.message;
-                    this.showEditModal = true;
-                },
-
-                async saveEditedOutreach() {
-                    try {
-                        await fetch(`/api/v1/approvals/${this.editItemId}/action`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ action: 'edit_and_approve', message: this.editItemMessage })
-                        });
-                        this.showEditModal = false;
-                        this.notify('Message updated & approved!');
-                        await this.fetchApprovals();
-                        await this.fetchStats();
-                    } catch (e) {
-                        this.notify('Save failed: ' + e, '⚠️');
-                    }
-                },
-
-                async updateJobStatus(id, newStatus) {
-                    try {
-                        await fetch(`/api/v1/jobs/${id}/status`, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ status: newStatus })
-                        });
-                        this.notify(`Status updated to ${newStatus}`);
-                        await this.fetchStats();
-                    } catch (e) {
-                        this.notify('Update failed', '⚠️');
-                    }
-                },
-
                 async syncExcel() {
                     try {
                         await fetch('/api/v1/sync-excel', { method: 'POST' });
                         this.notify('Synced to recruitment_tracker.xlsx!');
                     } catch (e) {
                         this.notify('Excel sync failed', '⚠️');
-                    }
-                },
-
-                async loadReport(type) {
-                    this.reportType = type;
-                    try {
-                        const res = await fetch(`/api/v1/reports/${type}`);
-                        const data = await res.json();
-                        this.reportContent = data.report;
-                    } catch (e) {
-                        this.reportContent = 'Failed to load report.';
                     }
                 }
             }
